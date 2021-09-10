@@ -10,12 +10,12 @@ fig_count = 0
 def tsplib_instance(path):
     with gzip.open(path) if path.endswith('.gz') else open(path) as f:
         content = f.readlines()
-    assert content[5].decode('utf8') == 'NODE_COORD_SECTION\n'
     data_line_pattern = re.compile(r'^\s*\d.*$')
-    coord_pattern = re.compile(r'(?<=\s)\d+(\.\d+)?(e\+\d\d)? \d+(\.\d+)?(e\+\d\d)?')
-    instance = [coord_pattern.search(str(line)).group(0) for line in content[:-1] 
+    coord_pattern = re.compile(r'(?<=\d)\s+\d+(\.\d+)?(e\+\d\d)?\s+\d+(\.\d+)?(e\+\d\d)?')
+    instance = [coord_pattern.search(line.decode('utf8')).group(0) for line in content[:-1] 
                 if data_line_pattern.match(line.decode('utf8'))]
-    instance = [' '.join(list(map(str, map(float, line.split(' '))))) for line in instance]
+    instance = [' '.join(list(map(str, map(float, filter(lambda s: s != '', line.split(' ')))))) 
+                for line in instance]
     return instance
 
 
@@ -76,21 +76,21 @@ if __name__ == '__main__':
         "If no optimal solution is provided, this argument is ignored.", action="store_true")
 
     args = parser.parse_args()
-    instance = None
+
     try:
         instance = tsplib_instance(args.instance)
-    except AttributeError:
+    except AttributeError as e:
+        import traceback
+        print(traceback.format_exc(e))
         print("Could not parse the .tsp file. (Not a supported instance)", file=sys.stderr)
         sys.exit(1)
 
-    solution = None
     try:
         instance, solution = run_solver(args.solver, instance)
     except subprocess.CalledProcessError:
         print("Solver did not manage to run the parsed instance", file=sys.stderr)
         sys.exit(1)
 
-    optimal_solution = None
     if args.optimal:
         try:
             optimal_solution = tsplib_solution(args.optimal)
