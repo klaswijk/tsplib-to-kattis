@@ -11,7 +11,7 @@ def tsplib_instance(path):
     with gzip.open(path) if path.endswith('.gz') else open(path) as f:
         content = f.readlines()
     data_line_pattern = re.compile(r'^\s*\d.*$')
-    coord_pattern = re.compile(r'(?<=\d)\s+\d+(\.\d+)?(e\+\d\d)?\s+\d+(\.\d+)?(e\+\d\d)?')
+    coord_pattern = re.compile(r'(?<=\d)\s+-?\d+(\.\d+)?(e\+\d\d)?\s+-?\d+(\.\d+)?(e\+\d\d)?')
     instance = [coord_pattern.search(line.decode('utf8')).group(0) for line in content[:-1] 
                 if data_line_pattern.match(line.decode('utf8'))]
     instance = [' '.join(list(map(str, map(float, filter(lambda s: s != '', line.split(' ')))))) 
@@ -80,8 +80,6 @@ if __name__ == '__main__':
     try:
         instance = tsplib_instance(args.instance)
     except AttributeError as e:
-        import traceback
-        print(traceback.format_exc(e))
         print("Could not parse the .tsp file. (Not a supported instance)", file=sys.stderr)
         sys.exit(1)
 
