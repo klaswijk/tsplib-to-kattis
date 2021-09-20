@@ -1,4 +1,5 @@
 import re
+import os
 import math
 import sys
 import gzip
@@ -29,7 +30,7 @@ def tsplib_solution(path):
 
 
 def run_solver(solver_path, instance):
-    solver_input = (f'{len(instance)}\n' + '\n'.join(instance)).encode()
+    solver_input = (f'{len(instance)}\n' + '\n'.join(instance) + '\n').encode()
     print('Running solver...', end='')
     cproc = subprocess.run(solver_path, input=solver_input, stdout=subprocess.PIPE, check=True)
     print(' Done!')
@@ -74,14 +75,23 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--print', 
         help="Print a comparison between the solver's solution and the optimal solution. "
         "If no optimal solution is provided, this argument is ignored.", action="store_true")
+    parser.add_argument('-f', '--file', help="Create Kattis a .in file (and .out if .opt is given)", 
+        action="store_true")
 
     args = parser.parse_args()
+    instance_name = os.path.basename(args.instance)
+    instance_name = instance_name[:instance_name.find('.')]
 
     try:
         instance = tsplib_instance(args.instance)
     except AttributeError as e:
         print("Could not parse the .tsp file. (Not a supported instance)", file=sys.stderr)
         sys.exit(1)
+
+    if args.file:
+        solver_input = (f'{len(instance)}\n' + '\n'.join(instance) + '\n')
+        with open(f'{instance_name}.in', 'w') as f:
+            f.write(solver_input)
 
     try:
         instance, solution = run_solver(args.solver, instance)
@@ -95,6 +105,9 @@ if __name__ == '__main__':
             if len(optimal_solution) != len(solution):
                 print("The solutions do not match. Something is either not matching," 
                     "not supported or the solver is faulty.", file=sys.stderr)
+            if args.file:
+                with open(f'{instance_name}.out', 'w') as f:
+                    f.write('\n'.join(optimal_solution) + '\n')
             if args.print:
                 print('\nTours:')
                 print(' sol  opt')
